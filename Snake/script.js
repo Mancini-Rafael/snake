@@ -1,186 +1,219 @@
-$(document).ready(function(){
+$(document).ready(function () {
+  const config = {
+    initialSpeed: 100,
+    speed: 100,
+    sizex: 50,
+    sizey: 30,
+    threshold: -80,
+    directions: {
+      37: "left",
+      38: "up",
+      39: "right",
+      40: "down",
+    },
+  };
 
-var snakeBody =[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5]]
-var snakeHead = [0,5];
-var speed = 100;
-var direction = 'right';
-var score = 0;
-var sizex = 50;
-var sizey = 30;
-var keyPressTime = 0;
-var lastKeyPressTime = 0;
-var threshold = -80;
-var validKeyCodes = {	37 : 'left', 38 : 'up',	39 : 'right',	40 : 'down',};
+  let gameState = {
+    snakeBody: [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [0, 5],
+    ],
+    snakeHead: [0, 5],
+    direction: "right",
+    score: 0,
+    lastKeyPressTime: 0,
+    fruitCell: [],
+  };
 
-$("#welcomeScreen").click(function gameStartUP() {
-	$("#welcomeScreen").hide("slow");
-	$("#gameBoard").show("slow");
-	$("#infoScore").show("slow");
-	renderBoard();
-	renderFruit();
-	renderSnake();
-	gameStart();
+  const $welcomeScreen = $("#welcomeScreen");
+  const $gameBoard = $("#gameBoard");
+  const $infoScore = $("#infoScore");
 
+  $welcomeScreen.click(startGame);
+
+  $(document).on("keydown", (event) => changeDirection(event.keyCode));
+
+  function startGame() {
+    $welcomeScreen.hide("slow");
+    $gameBoard.show("slow");
+    $infoScore.show("slow");
+    initializeGame();
+  }
+
+  function initializeGame() {
+    gameState = {
+      ...gameState,
+      score: 0,
+      direction: "right",
+      speed: config.initialSpeed,
+    };
+    gameState.snakeBody = [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [0, 5],
+    ];
+    gameState.snakeHead = [0, 5];
+    $infoScore.html("Your Score: " + gameState.score);
+    renderBoard();
+    generateFruit();
+    renderSnake();
+    startAnimation();
+  }
+
+  function startAnimation() {
+    gameState.timer = setInterval(animateSnake, config.speed);
+  }
+
+  function resetGame() {
+    clearInterval(gameState.timer);
+    initializeGame();
+  }
+
+  function generateFruit() {
+    let fruitPosition;
+    do {
+      fruitPosition = [
+        Math.floor(Math.random() * config.sizey),
+        Math.floor(Math.random() * config.sizex),
+      ];
+    } while (isCellOccupied(fruitPosition));
+
+    gameState.fruitCell = fruitPosition;
+    renderFruit();
+  }
+
+  function renderFruit() {
+    $("td").removeClass("fruitCell");
+    getCell(gameState.fruitCell).addClass("fruitCell");
+  }
+
+  function renderSnake() {
+    $("td").removeClass("snakeBody snakeHead");
+    gameState.snakeBody.forEach((cell) => getCell(cell).addClass("snakeBody"));
+    getCell(gameState.snakeHead).addClass("snakeHead");
+  }
+
+  function renderBoard() {
+    const rowsHtml = Array.from(
+      { length: config.sizey },
+      () =>
+        "<tr>" +
+        Array(config.sizex).fill('<td class="boardCell"> </td>').join("") +
+        "</tr>"
+    ).join("\n");
+    $gameBoard.html('<table id="gridMovement">' + rowsHtml + "</table>");
+    generateFruit();
+  }
+
+  function changeDirection(keyCode) {
+    const currentTime = Date.now();
+    if (currentTime - gameState.lastKeyPressTime < config.threshold) return;
+
+    const newDirection = config.directions[keyCode];
+    if (newDirection && isValidDirectionChange(newDirection)) {
+      gameState.direction = newDirection;
+      gameState.lastKeyPressTime = currentTime;
+    }
+  }
+
+  function isValidDirectionChange(newDirection) {
+    return !(
+      (gameState.direction === "left" && newDirection === "right") ||
+      (gameState.direction === "right" && newDirection === "left") ||
+      (gameState.direction === "up" && newDirection === "down") ||
+      (gameState.direction === "down" && newDirection === "up")
+    );
+  }
+
+  function animateSnake() {
+    // Calculate the new head position
+    const nextHead = getNextHeadPosition();
+
+    // Check for collisions with walls or self
+    if (isCollision(nextHead)) {
+      resetGame();
+      return;
+    }
+
+    // Track the current tail (last segment) before moving
+    const previousTail = gameState.snakeBody[gameState.snakeBody.length - 1];
+
+    // Move the snake: Shift the body and update the head
+    gameState.snakeBody.pop(); // Remove the tail segment
+    gameState.snakeBody.unshift(nextHead); // Add the new head position
+    gameState.snakeHead = nextHead;
+
+    // If the snake eats the fruit, add a new segment to the body
+    if (arraysEqual(nextHead, gameState.fruitCell)) {
+      gameState.snakeBody.push(previousTail); // Add the previous tail back as a new segment
+      generateFruit();
+      updateScore();
+      adjustSpeed();
+    }
+
+    // Clear the previous tail cell (remove the snakeBody class)
+    getCell(previousTail).removeClass("snakeBody");
+
+    // Render the snake in the new position
+    renderSnake();
+  }
+
+  function getNextHeadPosition() {
+    const [row, col] = gameState.snakeHead;
+    switch (gameState.direction) {
+      case "right":
+        return [row, col + 1];
+      case "left":
+        return [row, col - 1];
+      case "up":
+        return [row - 1, col];
+      case "down":
+        return [row + 1, col];
+    }
+  }
+
+  function isCollision(position) {
+    const [row, col] = position;
+    return (
+      row < 0 ||
+      col < 0 ||
+      row >= config.sizey ||
+      col >= config.sizex ||
+      isCellOccupied(position)
+    );
+  }
+
+  function isCellOccupied(position) {
+    return gameState.snakeBody.some(
+      (segment) => segment[0] === position[0] && segment[1] === position[1]
+    );
+  }
+
+  function arraysEqual(a, b) {
+    return a.length === b.length && a.every((val, index) => val === b[index]);
+  }
+
+  function updateScore() {
+    gameState.score += 100;
+    $infoScore.html("Your Score: " + gameState.score);
+  }
+
+  function adjustSpeed() {
+    if (gameState.speed > 5) {
+      gameState.speed -= 1;
+      clearInterval(gameState.timer);
+      startAnimation();
+    }
+  }
+
+  function getCell([row, col]) {
+    return $("tr").eq(row).find("td").eq(col);
+  }
 });
-
-$( document ).bind('keydown', function( keypressed ) {
-	newDirection( keypressed.keyCode );
-});
-
-
-function gameShutDown() {
-	$("#welcomeScreen").show("slow");
-	$("#gameBoard").hide("slow");
-	$("#infoScore").hide("slow");
-	$('#gameBoard').html('');
-	$('#infoScore').html('');
-	score = 0;
-	speed = 100;
-	snakeBody = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5]], snakeHead = [0,5];
-	direction = 'right';
-	clearInterval(timer);
-}
-function gameStart() {
-	timer = setInterval(animateSnake, speed);
-}
-function restart() {
-	score = 0;
-	speed = 100;
-	snakeBody = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5]], snakeHead = [0,5];
-	direction = 'right';
-	$( '#infoScore' ).html( 'Your Score : ' + score );
-	renderSnake();
-	renderFruit();
-	clearInterval(timer);
-	$( document ).bind('keydown', function( keypressed ) {
-		newDirection( keypressed.keyCode );
-	});
-	gameStart();
-}
-function getFruit() {
-			fruitCell = [(Math.floor(Math.random()*(sizey-1))+1),(Math.floor(Math.random()*sizex-1)+1)];
-}
-function renderFruit() {
-	if (($('tr').eq( fruitCell[0] ).find('td').eq(fruitCell[1]).hasClass('snakeBody'))) {
-		getFruit();
-	}
-	$( 'td' ).removeClass( 'fruitCell' );
-	$('tr').eq( fruitCell[0] ).find('td').eq(fruitCell[1]).addClass( 'fruitCell' );
-}
-function renderSnake (){
-			$('td').removeClass('snakeBody snakeHead');
-			for (var coordinates in snakeBody ){
-				$('tr').eq(snakeBody[coordinates][0]).find('td').eq(snakeBody[coordinates][1]).addClass('snakeBody');
-			}
-			$('tr').eq(snakeHead[0]).find('td').eq(snakeHead[1]).addClass('snakeHead');
-		}
-function renderBoard() {
-			var textHtml = ''; /* So it is converted to text */
-			for( var i = 0; i < sizex; i++ ) {
-				textHtml = textHtml + '<td class="boardCell"> </td>';
-			}
-			html = [];
-			for( var i = 0; i <= sizey; i++ ) {
-				html.push( '<tr>'+ textHtml + '</tr>');
-			}
-			$("#gameBoard").append( '<table id="gridMovement">' + html.join( '\n' ) + '</table>' );
-			getFruit();
-		};
-function newDirection(keyCode) {
-	keyPressTime = new Date().getTime();
-	if (lastKeyPressTime - keyPressTime  < threshold) {
-		if( typeof validKeyCodes[keyCode] != 'undefined' ) {
-			var newDirection = validKeyCodes[ keyCode ];
-			var changeDirection = false;
-			switch (direction) {
-				case 'left':
-				if (newDirection == 'right') {
-					changeDirection = false;
-					break;
-				} else {
-					changeDirection = true;
-				}
-				break;
-				case 'right':
-				if (newDirection == 'left') {
-					changeDirection = false;
-					break;
-				} else {
-					changeDirection = true;
-				}
-					break;
-				case 'up':
-				if (newDirection == 'down') {
-					changeDirection = false;
-					break;
-				} else {
-					changeDirection = true;
-				}
-					break;
-				case 'down':
-				if (newDirection == 'up') {
-					changeDirection = false;
-					break;
-				} else {
-					changeDirection = true;
-				}
-			}
-			direction = changeDirection ? newDirection : direction;
-		}
-	}
-		lastKeyPressTime = keyPressTime;
-}
-function animateSnake() {
-	var snakeNewHead = [];
-	var newCell = {length:0};
-	switch(direction){
-		case 'right':
-		snakeNewHead = [ snakeHead[0], snakeHead[1]+1 ];
-		break;
-		case 'left':
-		snakeNewHead = [ snakeHead[0], snakeHead[1]-1 ];
-		break;
-		case 'up':
-		snakeNewHead = [ snakeHead[0]-1, snakeHead[1] ];
-		break;
-		case 'down':
-		snakeNewHead = [ snakeHead[0]+1, snakeHead[1] ];
-		break;
-	}
-	if( snakeNewHead[0] < 0 || snakeNewHead[1] < 0 ) {
-		restart();
-		return;
-	} else if( snakeNewHead[0] >= sizex || snakeNewHead[1] >= sizex ) {
-		restart();
-		return;
-	}
-	var newCell = $('tr').eq( snakeNewHead[0] ).find('td').eq(snakeNewHead[1]);
-	if( newCell.length == 0 ) {
-		restart();
-	} else {
-		if ( newCell.hasClass('snakeBody')) {
-			restart();
-		} else {
-			if( newCell.hasClass( 'fruitCell' ) ) {
-				snakeBody.push( [] );
-				getFruit();
-				renderFruit();
-				score += 100;
-				$( '#infoScore' ).html( 'Your Score : ' + score );
-				if(speed-10 > 5){
-					speed = speed - 1;
-				}else{
-					speed = speed;
-				}
-				clearInterval(timer);
-				gameStart();
-			}
-			for( var i = ( snakeBody.length - 1 ); i > 0 ; i-- ) {
-				snakeBody[ i ] = snakeBody[ i - 1 ];
-			}
-			snakeBody[ 0 ] = snakeHead = snakeNewHead;
-			renderSnake();
-		}
-	}
-}
-})

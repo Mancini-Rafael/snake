@@ -1,71 +1,110 @@
+/* Global Variables */
+:root {
+  --background-color: #87CEFA;
+  --border-color: black;
+  --green-color: green;
+  --grey-color: grey;
+  --red-color: red;
+  --dark-grey-color: #696969;
+}
+
+/* Font Face Declaration */
 @font-face {
   font-family: ArcadeFont;
   src: url("ARCADECLASSIC.ttf");
 }
 
-#gameBoard{
+/* Box-Sizing for Consistency */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* General Layout Styles */
+body {
+  background-color: var(--grey-color);
+  font-family: ArcadeFont;
+}
+
+/* Game Board Styles */
+#gameBoard {
   display: none;
   width: 700px;
   height: 446px;
-  background-color: #87CEFA;
-  border: 1px solid black;
-  position: relative;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
   margin: auto;
 }
-.boardCell{
+
+/* Board Cell Styles */
+.boardCell {
   height: 10px;
   width: 10px;
 }
-#gridMovement{
+
+/* Grid Movement Styles */
+#gridMovement {
   width: 700px;
   height: 446px;
-  border: 5px solid black;
-}
-#welcomeScreen{
-  width: 500px;
-  height: 500px;
-  background-color: green;
+  border: 5px solid var(--border-color);
   margin: auto;
-  border: 2px solid black;
-  border-radius: 3px;
-  padding: 5px;
-  text-align: center;
-  font-family: ArcadeFont;
-  font-size: 30px;
 }
 
-footer {
-    padding: 1em;
-    color: white;
-    background-color: black;
-    clear: left;
-    text-align: center;
-}
-#infoScore{
-  text-align: center;
-  border: 2px solid #696969;
-  border-radius:10px;
+/* Welcome Screen and Info Score Styles */
+#welcomeScreen, #infoScore {
   width: 500px;
-  height: 70px;
-  font-size: 30px;
+  border: 2px solid var(--border-color);
   margin: auto;
+  text-align: center;
+  font-family: ArcadeFont;
+  font-size: 30px;
+  padding: 5px;
+  background-color: var(--green-color);
+}
+
+#welcomeScreen {
+  height: 500px;
+  border-radius: 3px;
+}
+
+#infoScore {
+  height: 70px;
+  border-radius: 10px;
   display: none;
   position: static;
-  font-family: ArcadeFont;
+  border-color: var(--dark-grey-color);
 }
-body{
-  background-color: grey;
-  font-family: ArcadeFont;
+
+/* Footer Styles */
+footer {
+  padding: 1em;
+  color: white;
+  background-color: var(--border-color);
+  clear: left;
+  text-align: center;
 }
-.snakeBody{
-  background-color: black;
+
+/* Snake and Fruit Styles */
+.snakeBody, .snakeHead, .fruitCell {
   border-radius: 3px;
 }
-.snakeHead{
-  background-color: green;
-  border-radius: 3px;
+
+.snakeBody {
+  background-color: var(--border-color);
 }
-.fruitCell{
-  background-color: red;
+
+.snakeHead {
+  background-color: var(--green-color);
+}
+
+.fruitCell {
+  background-color: var(--red-color);
   border-radius: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #gameBoard, #gridMovement {
+      width: 100%;
+      height: auto;
+  }
 }
